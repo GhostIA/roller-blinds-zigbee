@@ -2,7 +2,8 @@
 
 Firmware for a motorized roller blind controlled over Zigbee. It runs on an
 Adafruit Feather ESP32-C6, drives a stepper motor through a TMC2209 driver,
-and pairs with Home Assistant (ZHA) as a standard window covering.
+and joins a Zigbee coordinator (hub) so Home Assistant can control it through
+ZHA as a standard window covering.
 
 - Open, close, stop and go to any position (0–100 %) from Home Assistant
 - Motor speed and acceleration can be adjusted from Home Assistant as number entities
@@ -61,14 +62,47 @@ The build uses the `zigbee.csv` partition table (included with the Arduino
 core) and `-DZIGBEE_MODE_ED` to run as a Zigbee end device. The firmware
 won't compile without that flag.
 
-## Pairing with Home Assistant (ZHA)
+## Home Assistant integration
 
-1. In Home Assistant, go to **Settings → Devices & services → Zigbee Home Automation → Add device**.
+The blind is a Zigbee end device. It doesn't use Wi-Fi and can't talk to
+Home Assistant directly. It joins a Zigbee network run by a coordinator
+(a Zigbee hub), and Home Assistant controls it through that coordinator.
+
+```
+Roller blind  ──Zigbee──▶  Coordinator (USB dongle / hub)  ──▶  Home Assistant (ZHA)
+```
+
+### What you need
+
+- **A Zigbee coordinator** that Home Assistant can use, for example a USB
+  dongle such as the Home Assistant Connect ZBT-1 (formerly SkyConnect) or a
+  Sonoff Zigbee 3.0 dongle, or the radio built into Home Assistant Yellow.
+  Plug a USB dongle in with a short extension cable, away from USB 3 ports
+  and Wi-Fi gear, to cut down on interference.
+- **The ZHA integration** (Zigbee Home Automation) set up in Home Assistant
+  with that coordinator. Home Assistant usually finds a plugged-in dongle by
+  itself and offers to set up ZHA.
+
+The firmware is built and tested against ZHA. Zigbee2MQTT may also pick the
+blind up as a standard window covering, but that hasn't been tested, and the
+speed/acceleration numbers would probably need a custom converter.
+
+If the blind is far from the coordinator, a mains-powered Zigbee router
+(most Zigbee smart plugs do this) between them extends the network. The
+blind itself is an end device, so it does not relay traffic for others.
+
+### Pairing
+
+1. In Home Assistant, go to **Settings → Devices & services → Zigbee Home Automation → Add device**. This opens the network for joining.
 2. Power on the Feather. A new device does not have a network yet, so it starts looking for one right away.
 3. The device appears as `DIY RollerBlind` with three entities:
    - a **cover** (roller shade) for open, close, stop and position
    - **Blind speed (steps/s)**, a number from 200 to 6000
    - **Blind acceleration (steps/s^2)**, a number from 200 to 12000
+
+You can then use the cover in dashboards, automations and scenes like any
+other Home Assistant blind (for example, close at sunset or open at a set
+time).
 
 To pair with a different coordinator, hold the factory reset button for 3
 seconds. The device clears its Zigbee network settings and reboots. The
